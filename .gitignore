@@ -1,3 +1,8 @@
 .haltman
 .qda-cache/
 .qda-output/
+*.txt
+qda.toml
+qda
+session-*.md
+_TASK.md

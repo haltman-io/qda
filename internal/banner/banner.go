@@ -1,0 +1,57 @@
+// Package banner renders the qda ASCII banner in ProjectDiscovery style.
+package banner
+
+import (
+	"fmt"
+	"strings"
+
+	"qda/internal/version"
+)
+
+// Colored art from temp-banner.txt (ANSI 256/16-color block art).
+var colorLines = []string{
+	"\x1b[0;37;40m                      \x1b[0;91;1;41m░▓▓█\x1b[0;31;40m▌\x1b[0;37;40m               \x1b[0m",
+	"\x1b[0;37;40m    \x1b[0;31;40m▄▄▄▄▄\x1b[0;37;40m         \x1b[0;31;40m▄▄▄▄\x1b[0;91;1;41m░▒▓▓\x1b[0;31;40m▌\x1b[0;37;40m      \x1b[0;31;40m▄░░▄▄\x1b[0;37;40m    \x1b[0m",
+	"\x1b[0;37;40m \x1b[0;31;40m▄\x1b[0;91;1;41m▄▄▓\x1b[0;91;1;47m▓\x1b[0;91;1;41m▀▒\x1b[0;31;47m▓▓\x1b[0;91;1;41m \x1b[0;31;40m▄\x1b[0;37;40m   \x1b[0;31;40m▄\x1b[0;91;1;41m \x1b[0;31;47m▓▓\x1b[0;91;1;41m▒▀\x1b[0;91;1;47m▓\x1b[0;91;1;41m▓▓▓▓\x1b[0;31;40m▌\x1b[0;37;40m   \x1b[0;31;40m▄\x1b[0;91;1;41m ░░▒▀\x1b[0;91;1;47m▓\x1b[0;91;1;41m▓▄▄\x1b[0;31;40m▄\x1b[0;37;40m \x1b[0m",
+	"\x1b[0;31;40m▐\x1b[0;91;1;41m▓▓▓▀\x1b[0;31;40m▀\x1b[0;37;40m  \x1b[0;31;40m▀\x1b[0;31;47m█\x1b[0;91;1;41m░\x1b[0;31;40m█▌\x1b[0;37;40m \x1b[0;31;40m▐█\x1b[0;91;1;41m░\x1b[0;31;47m█\x1b[0;31;40m▀\x1b[0;37;40m   \x1b[0;91;1;41m▀▓▓▓\x1b[0;31;40m▌\x1b[0;37;40m  \x1b[0;91;1;41m ░░\x1b[0;31;40m█▀\x1b[0;37;40m  \x1b[0;31;40m▀\x1b[0;91;1;41m▀▓▓▌\x1b[0;31;40m▌\x1b[0m",
+	"\x1b[0;91;1;40m▓\x1b[0;91;1;41m▓\x1b[0;91;1;47m▓\x1b[0;91;1;41m▌\x1b[0;31;40m▌\x1b[0;37;40m \x1b[0;90;1;40m░░░\x1b[0;31;40m▐███\x1b[0;37;40m \x1b[0;31;40m███▌\x1b[0;90;1;40m░░░\x1b[0;37;40m \x1b[0;31;40m█\x1b[0;91;1;41m▐\x1b[0;91;1;47m▓\x1b[0;91;1;41m▓\x1b[0;91;1;40m▓\x1b[0;37;40m \x1b[0;31;40m▐\x1b[0;90;1;41m \x1b[0;91;1;41m  \x1b[0;31;40m▌\x1b[0;90;1;40m░░░\x1b[0;37;40m \x1b[0;31;40m▐\x1b[0;91;1;41m▐\x1b[0;91;1;47m▓\x1b[0;91;1;41m▓\x1b[0;31;40m▌\x1b[0m",
+	"\x1b[0;31;40m▐\x1b[0;91;1;41m▀▓▀ \x1b[0;31;40m▄\x1b[0;37;40m  \x1b[0;31;40m▄\x1b[0;91;1;41m ░░\x1b[0;31;40m█\x1b[0;37;40m \x1b[0;31;40m▐█▓\x1b[0;91;1;41m \x1b[0;31;40m▄\x1b[0;37;40m   \x1b[0;91;1;41m ▀▓▀\x1b[0;31;40m▓\x1b[0;37;40m \x1b[0;31;40m▐▓▓\x1b[0;91;1;41m  \x1b[0;37;40m    \x1b[0;31;40m▐\x1b[0;91;1;41m▀▓▌\x1b[0;31;40m▌\x1b[0m",
+	"\x1b[0;37;40m \x1b[0;31;40m▀\x1b[0;91;1;41m  ░░\x1b[0;90;1;41m   ░\x1b[0;91;1;41m▒▒░\x1b[0;37;40m  \x1b[0;31;40m▀\x1b[0;90;1;41m░░   \x1b[0;91;1;41m░░  \x1b[0;31;40m██\x1b[0;37;40m  \x1b[0;31;40m▀█\x1b[0;90;1;41m░░ \x1b[0;31;40m▄▄▄\x1b[0;91;1;41m░ ░░░\x1b[0m",
+	"\x1b[0;37;40m    \x1b[0;31;40m▀▀░▀▀█\x1b[0;91;1;41m░▓░\x1b[0;37;40m     \x1b[0;31;40m▀▀░▀▀\x1b[0;37;40m \x1b[0;31;40m▀▀\x1b[0;37;40m      \x1b[0;31;40m▀▀▀▀░▒▒▀▀▀\x1b[0m",
+	"\x1b[0;37;40m         \x1b[0;31;40m█\x1b[0;91;1;41m▒█▒\x1b[0;37;40m                             \x1b[0m",
+}
+
+var plainLines = []string{
+	"                      ░▓▓█▌               ",
+	"    ▄▄▄▄▄         ▄▄▄▄░▒▓▓▌      ▄░░▄▄    ",
+	" ▄▄▄▓▓▀▒▓▓ ▄   ▄ ▓▓▒▀▓▓▓▓▓▌   ▄ ░░▒▀▓▓▄▄▄ ",
+	"▐▓▓▓▀▀  ▀█░█▌ ▐█░█▀   ▀▓▓▓▌   ░░█▀  ▀▀▓▓▌▌",
+	"▓▓▓▌▌ ░░░▐███ ███▌░░░ █▐▓▓▓ ▐   ▌░░░ ▐▐▓▓▌",
+	"▐▀▓▀ ▄  ▄ ░░█ ▐█▓ ▄    ▀▓▀▓ ▐▓▓      ▐▀▓▌▌",
+	" ▀  ░░   ░▒▒░  ▀░░   ░░  ██  ▀█░░ ▄▄▄░ ░░░",
+	"    ▀▀░▀▀█░▓░     ▀▀░▀▀ ▀▀      ▀▀▀▀░▒▒▀▀▀",
+	"         █▒█▒                             ",
+}
+
+// Text returns the banner with version, developer and repository lines.
+// When color is true, the fire block-art ANSI banner is used.
+func Text(color bool) string {
+	lines := plainLines
+	if color {
+		lines = colorLines
+	}
+	var b strings.Builder
+	b.WriteString("\n")
+	for _, line := range lines {
+		b.WriteString(line)
+		b.WriteString("\n")
+	}
+	if color {
+		b.WriteString(fmt.Sprintf("\n   \x1b[31;1mquick domain availability\x1b[0m \x1b[90mv%s\x1b[0m\n", version.Version))
+		b.WriteString("   \x1b[90mhaltman.io · https://github.com/haltman-io/qda\x1b[0m\n\n")
+	} else {
+		b.WriteString(fmt.Sprintf("\n   quick domain availability v%s\n", version.Version))
+		b.WriteString("   haltman.io · https://github.com/haltman-io/qda\n\n")
+	}
+	return b.String()
+}
